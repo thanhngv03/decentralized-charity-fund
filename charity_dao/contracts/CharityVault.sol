@@ -1,56 +1,82 @@
-// SPDX-License-Identifier: MIT 
-pragma solidity ^0.8.20;
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.18;
 
-/// @title CharityVault 
-/// @notice Hợp đồng cho phép nhận donation ETH và rút donation ETH 
+import "@openzeppelin/contracts/access/AccessControl.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
-contract CharityVault {
-    address public owner;
+/**
+ * @title CharityVault
+ * @dev Hợp đồng thông minh cho phép quyên góp ETH vào quỹ từ thiện minh bạch.
+ * - Ai cũng có thể donate.
+ * - Chỉ admin/DAO mới được quyền rút.
+ * - Mọi giao dịch đều phát event công khai.
+ */
+contract CharityVault is AccessControl, ReentrancyGuard {
+    /// @notice Role cho admin (DAO/multi-sig)
+    bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
+
+    /// @notice mapping địa chỉ → tổng số tiền đã donate
+    mapping(address => uint256) public donations;
+
+    /// @notice tổng số tiền donate
     uint256 public totalDonated;
 
-    mapping(address => uint256) public donations; 
+    /// @notice event khi có donate
+    event DonationReceived(address indexed donor, uint256 amount);
 
-    event Donated(address indexed donor, uint256 amount); /// hàm donate
-    event Withdraw(address indexed to, uint256 amount); /// sự kiện rút tiền
+    /// @notice event khi có rút tiền
+    event FundsWithdrawn(address indexed to, uint256 amount);
 
-    modifier onlyOwner() {
-        require(msg.sender == owner, "Not owner");
-        _;
+    /**
+     * @dev constructor: deployer mặc định là admin
+     */
+    constructor(address admin) {
+        _grantRole(DEFAULT_ADMIN_ROLE, admin);
+        _grantRole(ADMIN_ROLE, admin);
     }
 
-    constructor(){
-        owner = msg.sender;
-    }
-
-    ///@notice Nhận donation ETH   
-    function donate() external payable {
-        require(msg.value > 0,"Must send ETH");
+    /**
+     * @notice Donate ETH vào quỹ
+     * @dev anyone có thể donate
+     */
+    function donate() external payable nonReentrant {
+        require(msg.value > 0, "Phai gui ETH > 0");
         donations[msg.sender] += msg.value;
         totalDonated += msg.value;
-
-        emit Donated(msg.sender, msg.value);
+        emit DonationReceived(msg.sender, msg.value);
     }
 
-    /// @notice Rút tiền về ví của owner 
-    /// @param amount Số ETH muốn rút (tính theo wei)
-    function withdraw(uint256 amount) external onlyOwner{
-        require(amount <= address(this).balance, "Insufficient balance");
+    /**
+     * @notice Admin rút tiền từ quỹ
+     * @dev chỉ ADMIN_ROLE mới gọi được
+     * @param to địa chỉ nhận tiền
+     * @param amount số wei rút ra
+     */
+    function withdraw(address payable to, uint256 amount)
+        external
+        onlyRole(ADMIN_ROLE)
+        nonReentrant
+    {
+        require(amount > 0, "So tien phai > 0");
+        require(address(this).balance >= amount, "Khong du so du");
 
-        //Gửi ETH về ví của admin 
-        (bool sent, )= payable(owner).call{value: amount}("");
-        require(sent, "Withdraw failed");
+        (bool success, ) = to.call{value: amount}("");
+        require(success, "Chuyen tien that bai");
 
-        emit Withdraw(owner, amount);
+        emit FundsWithdrawn(to, amount);
     }
 
-    /// @notice Xem số tiền một địa chỉ đã donate 
+    /**
+     * @notice Xem số tiền một donor đã donate
+     */
     function getDonationOf(address donor) external view returns (uint256) {
         return donations[donor];
     }
 
-    /// @dev Tự động xử lý nếu nhận ETH trực tiếp
-    receive() external payable{
-        // Gọi lại donate() để ghi nhận event và cập nhật dữ liệu
-        this.donate();
+    /**
+     * @notice Nhận ETH trực tiếp
+     */
+    receive() external payable {
+        donate();
     }
 }
