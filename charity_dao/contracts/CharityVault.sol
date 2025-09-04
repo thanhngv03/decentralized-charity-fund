@@ -77,6 +77,9 @@ contract CharityVault is AccessControl, ReentrancyGuard {
      * @notice Nhận ETH trực tiếp
      */
     receive() external payable {
-        donate();
+        require(msg.value > 0, "Phai gui ETH > 0");
+        donations[msg.sender] += msg.value;
+        totalDonated += msg.value;
+        emit DonationReceived(msg.sender, msg.value);
     }
 }
