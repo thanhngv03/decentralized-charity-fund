@@ -1,14 +1,17 @@
-const hre = require("hardhat");
+const hre = require ("hardhat");
 
 async function main(){
-    const CharityVault = await hre.ethers.getContractFactory("CharityVault");
-    const vault = await CharityVault.deploy();
-    // await vault.deployed();
+    const [deployer] = await hre.eithers.getSigners();
 
-    console.log(`CharityVault deployed to: ${vault.target || vault.address}`);
+    const CharityVault = await hre.ethers.getContractFactory("CharityVault");
+    const vault = await CharityVault.deploy(deployer.address);
+
+    await vault.deployed();
+
+    console.log(`CharityVault deployed to: ${vault.address}`);
 }
 
-main().catch((error) =>{
+main().catch((error) => {
     console.error(error);
     process.exitCode = 1;
 });
