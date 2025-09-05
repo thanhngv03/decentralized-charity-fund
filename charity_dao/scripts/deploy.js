@@ -1,14 +1,19 @@
-const hre = require ("hardhat");
+const { ethers } = require("hardhat");
 
 async function main(){
-    const [deployer] = await hre.eithers.getSigners();
+    const [deployer] = await ethers.getSigners();
 
-    const CharityVault = await hre.ethers.getContractFactory("CharityVault");
-    const vault = await CharityVault.deploy(deployer.address);
+    console.log("Deploying contracts with account:", deployer.address);
 
-    await vault.deployed();
+    const CharityVault = await ethers.getContractFactory("CharityVault");
 
-    console.log(`CharityVault deployed to: ${vault.address}`);
+    //deploy và truyền admin (dùng deployer Làm admin)
+    const vault = await CharityVault.deploy(deployer.address);  
+
+    //với ethers v6
+    await vault.waitForDeployed();
+
+    console.log("CharityVault deployed to: ", await vault.getAddress());
 }
 
 main().catch((error) => {
