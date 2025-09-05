@@ -2,7 +2,7 @@ const { ethers } = require("hardhat");
 const fs = require("fs");
 const path = require ("path");
 
-async function main(){
+async function main() {
     const [deployer] = await ethers.getSigners();
 
     console.log("Deploying contracts with account:", deployer.address);
@@ -17,7 +17,7 @@ async function main(){
 
     const contractAddress = await vault.getAddress();
     console.log("CharityVault deployed to: ", contractAddress);
-}
+
     
     //Ghi địa chỉ contract vào file JSON
     const deploymentsDir = path.join (__dirname, "..", "deployments");
@@ -26,7 +26,7 @@ async function main(){
     }
 
     const deploymentInfo = {
-        CharityVault: contractAddress,
+        CharityVault: contractAddress,      
         network: "localhost",
         deployer: deployer.address,
     };
@@ -38,6 +38,8 @@ async function main(){
     );
 
     console.log("Deployment info saved to deployments/deployed-address.json");
+}   
+
 main().catch((error) => {
     console.error(error);
     process.exitCode = 1;
