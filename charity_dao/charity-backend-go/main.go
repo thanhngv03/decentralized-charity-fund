@@ -2,60 +2,65 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"math/big"
+	"os"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
+
 	// Replace with the correct path to the generated Go bindings for your CharityVault contract, e.g.:
 	"github.com/thanhngv03/decentralized-charity-fund/charity-backend-go/contract"
 )
 
+// Cấu trục khớp JSON
+type DeploymentInfo struct {
+	CharityVault string `json:"CharityVault"`
+	Network      string `json:"network"`
+	Deployer     string `json:"deployer"`
+}
+
 func main() {
-	// 1. Kết nối tới Hardhat node
+
+	// Đọc file JSON
+	data, err := os.ReadFile("../deployments/deployed-address.json")
+	if err != nil {
+		log.Fatal("Không đọc được file JSON: %v", err)
+	}
+
+	var deployment DeploymentInfo
+	if err := json.Unmarshal(data, &deployment); err != nil {
+		log.Fatal("Không parse được JSON: %v", err)
+	}
+
+	fmt.Println("Địa chỉ contract: ", deployment.CharityVault)
+
+	// Kết nối tới Hardhat node
 	client, err := ethclient.Dial("http://127.0.0.1:8545")
 	if err != nil {
 		log.Fatal("Lỗi kết nối Ethereum client:", err)
 	}
-	fmt.Println("✅ Đã kết nối Hardhat node")
+	defer client.Close()
 
-	// 2. Địa chỉ contract (copy từ bước deploy)
-	contractAddress := common.HexToAddress("0x5FbDB2315678afecb367f032d93F642f64180aa3")
-	vault, err := contract.NewCharityVault(contractAddress, client)
+	// Khởi tạo instance contract
+	contractAddr := common.HexToAddress(deployment.CharityVault)
+	vault, err := contract.NewCharityVault(contractAddr, client)
 	if err != nil {
 		log.Fatal("Không load contract:", err)
 	}
 
-	// 3. Private key (copy từ Hardhat node log, bỏ "0x")
-	privateKey, err := crypto.HexToECDSA("59c6995e998f97a5a004497e5da...") // thay bằng private key thật
-	if err != nil {
-		log.Fatal("Không load private key:", err)
-	}
-
-	// 4. Tạo transaction auth
-	chainID := big.NewInt(31337) // Hardhat chainId
-	auth, err := bind.NewKeyedTransactorWithChainID(privateKey, chainID)
-	if err != nil {
-		log.Fatal("Không tạo được auth:", err)
-	}
-
-	// Gửi kèm 0.1 ETH khi gọi donate()
-	auth.Value = big.NewInt(1e17) // 0.1 ETH in wei
-
-	// 5. Gọi hàm donate()
-	tx, err := vault.Donate(auth)
-	if err != nil {
-		log.Fatal("Lỗi donate:", err)
-	}
-	fmt.Println("💸 Donate thành công, Tx hash:", tx.Hash().Hex())
-
-	// 6. Đọc tổng donate
+	// Gọi hàm view trong contract
 	total, err := vault.TotalDonated(&bind.CallOpts{Context: context.Background()})
 	if err != nil {
-		log.Fatal("Lỗi đọc tổng donate:", err)
+		log.Fatal("Lỗi khi gọi totalDonated: %v", err)
 	}
-	fmt.Println("💰 Tổng donate trong contract:", total)
+
+	fmt.Println("Tổng tiền donate hiện tại:", total, "đồng")
+
+	// (Tuỳ chọn) có thể convert sang ETH
+	fmt.Println("Tổng tiền donate(ETH):", new(big.Float).Quo(new(big.Float).SetInt(total), big.NewFloat(1e18)))
+
 }
