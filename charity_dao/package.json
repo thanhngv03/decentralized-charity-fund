@@ -2,9 +2,11 @@
   "name": "charity_dao",
   "version": "1.0.0",
   "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
+ "scripts": {
+  "test": "hardhat test",
+  "deploy": "hardhat run scripts/deploy.js --network localhost"
+}
+,
   "keywords": [],
   "author": "",
   "license": "ISC",
