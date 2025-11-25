@@ -16,11 +16,24 @@ import (
 	"github.com/thanhngv03/decentralized-charity-fund/charity-backend-go/contract"
 )
 
-// Cấu trục khớp JSON
+// Cấu trục đọc JSON
 type DeploymentInfo struct {
 	CharityVault string `json:"CharityVault"`
 	Network      string `json:"network"`
 	Deployer     string `json:"deployer"`
+}
+
+func loadDeploymentInfo() DeploymentInfo {
+	data, err := os.ReadFile("../deployments/deployed-address.json")
+	if err != nil {
+		log.Fatalf("Không đọc được file deployed-address.json: %v", err)
+	}
+
+	var info DeploymentInfo
+	if err := json.Unmarshal(data, &info); err != nil {
+		log.Fatalf("Không parse được JSON: %v", err)
+	}
+	return info
 }
 
 func main() {
