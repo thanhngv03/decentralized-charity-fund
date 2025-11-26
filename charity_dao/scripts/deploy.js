@@ -1,48 +1,48 @@
-const { ethers } = require ("hardhat");
+const hre = require("hardhat");
 const fs = require("fs");
-const path = require ("path");
+const path = require("path");
 
 async function main() {
-    const [deployer] = await hre.ethers.getSigners();
+  const [deployer] = await hre.ethers.getSigners();
 
-    console.log("Deploying contracts with account:", deployer.address);
+  console.log("Deploying contracts with account:", deployer.address);
 
-    const CharityVault = await ethers.getContractFactory("CharityVault");
+  // Lấy contract factory (ethers v6)
+  const Vault = await hre.ethers.getContractFactory("CharityVault");
 
-    //deploy và truyền admin (dùng deployer Làm admin)
-    const Vault = await CharityVault.deploy(deployer.address);
-    const vault = await Vault.deploy(deployer.address);  
+  // Deploy contract, truyền địa chỉ admin vào constructor
+  const vault = await Vault.deploy(deployer.address);
 
-    //với ethers v6
-    await vault.waitForDeployment();
+  // Ethers v6: chờ deploy
+  await vault.waitForDeployment();
 
-    const contractAddress = await vault.getAddress();
-    console.log("Contract deployed to: ", await vault.geetAddress);
+  const contractAddress = await vault.getAddress();
+  console.log("CharityVault deployed to:", contractAddress);
 
-    
-    //Ghi địa chỉ contract vào file JSON
-    const deploymentsDir = path.join (__dirname, "..", "deployments");
-    if (!fs.existsSync(deploymentsDir)) {
-        fs.mkdirSync(deploymentsDir);
-    }
+  // -----------------------------
+  // Lưu vào JSON để backend Go sử dụng
+  // -----------------------------
 
-    const deploymentInfo = {
-        CharityVault: contractAddress,      
-        network: "localhost",
-        deployer: deployer.address,
-    };
+  const outputDir = path.join(__dirname, "../deployments");
+  if (!fs.existsSync(outputDir)) {
+    fs.mkdirSync(outputDir);
+  }
 
-    fs.writeFileSync(
-        path.join(deploymentsDir, "deployed-address.json"),
-        JSON.stringify(deploymentInfo, null, 2),
-        "utf-8"
-    );
+  const data = {
+    network: "localhost",
+    CharityVault: contractAddress,
+    deployer: deployer.address,
+  };
 
-    console.log("Deployment info saved to deployments/deployed-address.json");
-}   
+  fs.writeFileSync(
+    path.join(outputDir, "deployed-address.json"),
+    JSON.stringify(data, null, 2)
+  );
+
+  console.log("Saved deployment info to deployments/deployed-address.json");
+}
 
 main().catch((error) => {
-    console.error(error);
-    process.exitCode = 1;
+  console.error(error);
+  process.exitCode = 1;
 });
-
