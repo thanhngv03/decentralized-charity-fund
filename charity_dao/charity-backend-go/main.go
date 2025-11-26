@@ -11,9 +11,9 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
-
 	// Replace with the correct path to the generated Go bindings for your CharityVault contract, e.g.:
 	"github.com/thanhngv03/decentralized-charity-fund/charity-backend-go/contract"
+
 )
 
 // Cấu trục đọc JSON
