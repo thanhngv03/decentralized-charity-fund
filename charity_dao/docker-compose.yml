@@ -1,0 +1,14 @@
+version: "3.9"
+
+services:
+  charity-ui:
+    build:
+      context: ./charity-ui
+    container_name: charity-ui
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./charity-ui:/app
+      - /app/node_modules
+    stdin_open: true
+    tty: true
